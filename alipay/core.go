@@ -34,16 +34,13 @@ type Config struct {
 	NotifyURL string
 }
 type Client struct {
-	appId           string
-	apiDomain       string
-	partnerId       string
-	publicKey       []byte
-	privateKey      []byte
-	AliPayPublicKey []byte
-	client          *http.Client
-	privateKey_     *rsa.PrivateKey
-	bufPool         *sync.Pool
-	conf            Config
+	appId      string
+	apiDomain  string
+	partnerId  string
+	client     *http.Client
+	privateKey *rsa.PrivateKey
+	bufPool    *sync.Pool
+	conf       Config
 }
 
 // NewClient 创建支付宝客户端
@@ -51,14 +48,12 @@ func NewClient(apigateway, appID, partnerID string, publicKey, privateKey []byte
 	client = &Client{}
 	client.appId = appID
 	client.partnerId = partnerID
-	client.privateKey = privateKey
-	client.publicKey = publicKey
 	client.client = http.DefaultClient
 	client.apiDomain = apigateway
 	client.bufPool = &sync.Pool{
 		New: func() interface{} { return new(bytes.Buffer) },
 	}
-	client.privateKey_, err = initRSAPrivateKey(publicKey, privateKey)
+	client.privateKey, err = initRSAPrivateKey(publicKey, privateKey)
 	return
 }
 

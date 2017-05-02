@@ -9,6 +9,10 @@ import (
 	"errors"
 )
 
+func (c *Client) RSA2Encrypt(src []byte) string {
+	return c.makeSign(SignTypeRSA2, src)
+}
+
 func packageData(originalData []byte, packageSize int) (r [][]byte) {
 	var src = make([]byte, len(originalData))
 	copy(src, originalData)
@@ -30,7 +34,7 @@ func packageData(originalData []byte, packageSize int) (r [][]byte) {
 }
 
 func (c *Client) rsaEncrypt(plaintext []byte) ([]byte, error) {
-	pub := &c.privateKey_.PublicKey
+	pub := &c.privateKey.PublicKey
 
 	data := packageData(plaintext, pub.N.BitLen()/8-11)
 	cipherData := make([]byte, 0, 0)
@@ -47,7 +51,7 @@ func (c *Client) rsaEncrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (c *Client) rsaDecrypt(ciphertext []byte) ([]byte, error) {
-	pri := c.privateKey_
+	pri := c.privateKey
 	data := packageData(ciphertext, pri.PublicKey.N.BitLen()/8)
 	plainData := make([]byte, 0, 0)
 
@@ -66,14 +70,14 @@ func (c *Client) rsa2Encrypt(src []byte, hash crypto.Hash) ([]byte, error) {
 	h.Write(src)
 	var hashed = h.Sum(nil)
 
-	return rsa.SignPKCS1v15(rand.Reader, c.privateKey_, hash, hashed)
+	return rsa.SignPKCS1v15(rand.Reader, c.privateKey, hash, hashed)
 }
 
 func (c *Client) rsa2Verify(src, sig []byte, hash crypto.Hash) error {
 	var h = hash.New()
 	h.Write(src)
 	var hashed = h.Sum(nil)
-	return rsa.VerifyPKCS1v15(&c.privateKey_.PublicKey, hash, hashed, sig)
+	return rsa.VerifyPKCS1v15(&c.privateKey.PublicKey, hash, hashed, sig)
 }
 
 func initRSAPublicKey(key []byte) (*rsa.PublicKey, error) {
