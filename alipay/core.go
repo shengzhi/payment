@@ -39,6 +39,7 @@ type Client struct {
 	partnerId  string
 	client     *http.Client
 	privateKey *rsa.PrivateKey
+	publicKey  *rsa.PublicKey
 	bufPool    *sync.Pool
 	conf       Config
 }
@@ -53,7 +54,8 @@ func NewClient(apigateway, appID, partnerID string, publicKey, privateKey []byte
 	client.bufPool = &sync.Pool{
 		New: func() interface{} { return new(bytes.Buffer) },
 	}
-	client.privateKey, err = initRSAPrivateKey(publicKey, privateKey)
+	client.privateKey, err = initRSAPrivateKey(privateKey)
+	client.publicKey, err = initRSAPublicKey(publicKey)
 	return
 }
 
@@ -143,10 +145,21 @@ func (c *Client) verifySign(signType SignType, src []byte, sign string) error {
 }
 
 func (c *Client) do(params url.Values, reply interface{}) error {
-	rep, err := c.client.PostForm(c.apiDomain, params)
+	buf := c.getBuf()
+	defer c.bufPool.Put(buf)
+	buf.WriteString(params.Encode())
+	req, err := http.NewRequest("POST", c.apiDomain, buf)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+	req.Header.Set("Accept", "application/json")
+	// reqbody, _ := httputil.DumpRequest(req, true)
+	// fmt.Println(string(reqbody))
+
+	rep, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
+	// body, _ := httputil.DumpResponse(rep, true)
+	// fmt.Println(string(body))
 	defer rep.Body.Close()
 	return json.NewDecoder(rep.Body).Decode(reply)
 }

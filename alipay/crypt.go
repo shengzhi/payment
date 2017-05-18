@@ -77,7 +77,7 @@ func (c *Client) rsa2Verify(src, sig []byte, hash crypto.Hash) error {
 	var h = hash.New()
 	h.Write(src)
 	var hashed = h.Sum(nil)
-	return rsa.VerifyPKCS1v15(&c.privateKey.PublicKey, hash, hashed, sig)
+	return rsa.VerifyPKCS1v15(c.publicKey, hash, hashed, sig)
 }
 
 func initRSAPublicKey(key []byte) (*rsa.PublicKey, error) {
@@ -92,7 +92,7 @@ func initRSAPublicKey(key []byte) (*rsa.PublicKey, error) {
 	return pubInterface.(*rsa.PublicKey), nil
 }
 
-func initRSAPrivateKey(public, private []byte) (*rsa.PrivateKey, error) {
+func initRSAPrivateKey(private []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(private)
 	if block == nil {
 		return nil, errors.New("private key error")
@@ -102,7 +102,5 @@ func initRSAPrivateKey(public, private []byte) (*rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	publicKey, err := initRSAPublicKey(public)
-	pri.PublicKey = *publicKey
 	return pri, err
 }

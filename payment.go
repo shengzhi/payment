@@ -79,6 +79,7 @@ type OrderResponse struct {
 	Wechat struct {
 		PrepayID string      `json:",omitempty" xml:",omitempty"`
 		PayForm  interface{} `json:",omitempty" xml:",omitempty"`
+		CodeURL  string      `json:",omitempty" xml:",omitempty"`
 	} `json:",omitempty" xml:",omitempty"`
 	Alipay struct {
 		PayForm string `json:",omitempty" xml:",omitempty"`

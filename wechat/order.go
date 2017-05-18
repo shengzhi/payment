@@ -202,6 +202,7 @@ func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, err
 	or := &payment.OrderResponse{}
 	or.Wechat.PrepayID = wxres.PrepayID
 	or.Wechat.PayForm = c.genAppPayArgs(wxres.PrepayID)
+	or.Wechat.CodeURL = wxres.CodeURL
 	return or, nil
 }
 

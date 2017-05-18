@@ -1,6 +1,7 @@
 package alipay
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -39,4 +40,25 @@ func parseAlipayTime(v string) (AlipayTime, error) {
 		return AlipayTime{}, err
 	}
 	return AlipayTime{Time: t}, nil
+}
+
+const (
+	success_code = "10000"
+)
+
+type commonReply struct {
+	Code    string
+	Msg     string
+	SubCode string `json:"sub_code"`
+	SubMsg  string `json:"sub_msg"`
+}
+
+func (r commonReply) checkErr() error {
+	if r.Code != success_code {
+		if r.SubCode != success_code {
+			return fmt.Errorf("code:%s,error:%s", r.SubCode, r.SubMsg)
+		}
+	}
+
+	return nil
 }
