@@ -228,7 +228,8 @@ func (c *Client) genAppPayArgs(prepayid string) AppPayObject {
 	fmt.Fprintf(buf, "package=%s&", object.Package)
 	fmt.Fprintf(buf, "partnerid=%s&", object.PartnerID)
 	fmt.Fprintf(buf, "prepayid=%s&", object.PrepayID)
-	fmt.Fprintf(buf, "timestamp=%d", object.Timestamp)
+	fmt.Fprintf(buf, "timestamp=%d&", object.Timestamp)
+	fmt.Fprintf(buf, "key=%s", c.secret)
 	object.Sign = strings.ToUpper(md5Encrypt(buf.Bytes()))
 	return object
 }
