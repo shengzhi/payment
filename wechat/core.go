@@ -4,10 +4,15 @@ package wechat
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"math/rand"
+	"net/http"
 	"reflect"
 	"sort"
 	"strings"
@@ -22,19 +27,58 @@ var _ payment.Provider = &Client{}
 
 // WechatPayClient 微信支付客服端
 type Client struct {
-	appid, secret string
-	payOption     Config
-	bufpool       *sync.Pool
+	appid, secret                string
+	payOption                    Config
+	bufpool                      *sync.Pool
+	httpClient                   *http.Client
+	caroot, clientcrt, clientkey string
+	tlsCfg                       *tls.Config
+	refundKey                    []byte
 }
 
 // NewClient 创建微信支付客服端
-func NewClient(appid, secret string) *Client {
+func NewClient(appid, secret, merchid string, options ...OptionFunc) *Client {
 	rand.Seed(time.Now().UnixNano())
-	c := &Client{appid: appid, secret: secret}
+	c := &Client{appid: appid, secret: secret,
+		payOption: Config{FeeType: "CNY", Timeout: time.Minute * 5, MerchantID: merchid}}
 	c.bufpool = &sync.Pool{
 		New: func() interface{} { return new(bytes.Buffer) },
 	}
+
+	c.httpClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	for _, fn := range options {
+		fn(c)
+	}
+
+	if err := c.loadCert(); err != nil {
+		log.Fatalln(err)
+	}
 	return c
+}
+func (c *Client) loadCert() error {
+	c.tlsCfg = &tls.Config{}
+	pool := x509.NewCertPool()
+	if c.caroot != "" {
+		rootca, err := ioutil.ReadFile(c.caroot)
+		if err != nil {
+			return fmt.Errorf("WXPay: load CA root cert failed: %v", err)
+		}
+		pool.AppendCertsFromPEM(rootca)
+		c.tlsCfg.RootCAs = pool
+	}
+	if c.clientcrt == "" || c.clientkey == "" {
+		return nil
+	}
+	cert, err := tls.LoadX509KeyPair(c.clientcrt, c.clientkey)
+	if err != nil {
+		return fmt.Errorf("WXPay: load cert file pair failed: %v", err)
+	}
+	c.tlsCfg.Certificates = []tls.Certificate{cert}
+	return nil
 }
 
 func (c *Client) getBuf() *bytes.Buffer {

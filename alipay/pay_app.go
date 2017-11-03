@@ -4,7 +4,6 @@ package alipay
 
 import "github.com/shengzhi/payment"
 import "fmt"
-import "net/url"
 
 type appPayRequest struct {
 	Body               string       `json:"body,omitempty"`
@@ -66,25 +65,29 @@ type appPayReply struct {
 	VoucherDetailList string     `json:"voucher_detail_list"`
 }
 
-func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, error) {
+// Order 统一下单
+func (c *AlipayClient) Order(order *payment.OrderRequest) (*payment.OrderResponse, error) {
 	orderReq := appPayRequest{
 		Body:        order.Desc,
 		Subject:     order.Subject,
 		OutTradeNo:  order.MerchanOrderNo,
 		Timeout:     "1d", // TODO
 		TotalAmount: fmt.Sprintf("%.2f", float64(order.Amount)/100),
-		ProductCode: "QUICK_MSECURITY_PAY",
 		GoodsType:   "0",
 	}
-	req := actReq{
-		method:   "alipay.trade.app.pay",
-		data:     orderReq,
-		signType: SignTypeRSA2,
-		params:   url.Values{},
+	if order.Source == payment.PaySourceApp {
+		orderReq.ProductCode = "QUICK_MSECURITY_PAY"
+		res := payment.OrderResponse{}
+		var err error
+		res.Alipay.PayForm, err = c.TradeAppPay(orderReq)
+		return &res, err
 	}
-	req.params.Add("notify_url", c.conf.NotifyURL)
-	params := c.makeParams(req)
-	res := payment.OrderResponse{}
-	res.Alipay.PayForm = params.Encode()
-	return &res, nil
+	if order.Source == payment.PaySourceWap {
+		orderReq.ProductCode = "QUICK_WAP_WAY"
+		res := payment.OrderResponse{}
+		var err error
+		res.Alipay.PayForm, err = c.TradeWapPay(orderReq, order.ReturnURL)
+		return &res, err
+	}
+	return nil, fmt.Errorf("Not Support")
 }

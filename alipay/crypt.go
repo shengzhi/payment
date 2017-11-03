@@ -9,7 +9,7 @@ import (
 	"errors"
 )
 
-func (c *Client) RSA2Encrypt(src []byte) string {
+func (c *AlipayClient) RSA2Encrypt(src []byte) string {
 	return c.makeSign(SignTypeRSA2, src)
 }
 
@@ -33,7 +33,7 @@ func packageData(originalData []byte, packageSize int) (r [][]byte) {
 	return r
 }
 
-func (c *Client) rsaEncrypt(plaintext []byte) ([]byte, error) {
+func (c *AlipayClient) rsaEncrypt(plaintext []byte) ([]byte, error) {
 	pub := &c.privateKey.PublicKey
 
 	data := packageData(plaintext, pub.N.BitLen()/8-11)
@@ -50,7 +50,7 @@ func (c *Client) rsaEncrypt(plaintext []byte) ([]byte, error) {
 	return cipherData, nil
 }
 
-func (c *Client) rsaDecrypt(ciphertext []byte) ([]byte, error) {
+func (c *AlipayClient) rsaDecrypt(ciphertext []byte) ([]byte, error) {
 	pri := c.privateKey
 	data := packageData(ciphertext, pri.PublicKey.N.BitLen()/8)
 	plainData := make([]byte, 0, 0)
@@ -65,7 +65,7 @@ func (c *Client) rsaDecrypt(ciphertext []byte) ([]byte, error) {
 	return plainData, nil
 }
 
-func (c *Client) rsa2Encrypt(src []byte, hash crypto.Hash) ([]byte, error) {
+func (c *AlipayClient) rsa2Encrypt(src []byte, hash crypto.Hash) ([]byte, error) {
 	var h = hash.New()
 	h.Write(src)
 	var hashed = h.Sum(nil)
@@ -73,7 +73,7 @@ func (c *Client) rsa2Encrypt(src []byte, hash crypto.Hash) ([]byte, error) {
 	return rsa.SignPKCS1v15(rand.Reader, c.privateKey, hash, hashed)
 }
 
-func (c *Client) rsa2Verify(src, sig []byte, hash crypto.Hash) error {
+func (c *AlipayClient) rsa2Verify(src, sig []byte, hash crypto.Hash) error {
 	var h = hash.New()
 	h.Write(src)
 	var hashed = h.Sum(nil)

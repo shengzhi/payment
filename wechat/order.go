@@ -4,11 +4,11 @@
 package wechat
 
 import (
-	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"net/http"
+	"io"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -167,20 +167,24 @@ func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, err
 		LimitPay:       c.payOption.LimitPay,
 		OpenID:         order.OpenID,
 	}
-	if order.FromWeb {
+	if order.Source == payment.PaySourceApp {
+		wxOrderReq.TradeType = "APP"
+	} else {
 		wxOrderReq.DeviceInfo = "WEB"
 		wxOrderReq.TradeType = "JSAPI"
-	} else {
-		wxOrderReq.TradeType = "APP"
 	}
 
 	c.makePaySign(wxOrderReq)
-	body, err := xml.Marshal(wxOrderReq)
-	if err != nil {
-		return nil, err
-	}
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		enc := xml.NewEncoder(pw)
+		if err := enc.Encode(wxOrderReq); err != nil {
+			log.Println(fmt.Errorf("Payment: marshal struct to xml error:%v", err))
+		}
+	}()
+	res, err := c.httpClient.Post(wx_pay_order_url, "application/xml", pr)
 
-	res, err := http.Post(wx_pay_order_url, "application/xml", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -201,19 +205,17 @@ func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, err
 	}
 	or := &payment.OrderResponse{}
 	or.Wechat.PrepayID = wxres.PrepayID
-	or.Wechat.PayForm = c.genAppPayArgs(wxres.PrepayID)
+	if order.Source == payment.PaySourceApp {
+		or.Wechat.PayForm = c.genAppPayArgs(wxres.PrepayID)
+	} else {
+		or.Wechat.PayForm = c.genWebPayArgs(wxres.PrepayID)
+	}
 	or.Wechat.CodeURL = wxres.CodeURL
 	return or, nil
 }
 
-// AppPayObject APP调起支付参数
-type AppPayObject struct {
-	APPID, PartnerID, Noncestr, Package, PrepayID, Sign string
-	Timestamp                                           int64
-}
-
-func (c *Client) genAppPayArgs(prepayid string) AppPayObject {
-	object := AppPayObject{
+func (c *Client) genAppPayArgs(prepayid string) payment.WXPayObject {
+	object := payment.WXPayObject{
 		APPID:     c.appid,
 		Noncestr:  c.genNonceStr(24),
 		Package:   "Sign=WXPay",
@@ -230,6 +232,27 @@ func (c *Client) genAppPayArgs(prepayid string) AppPayObject {
 	fmt.Fprintf(buf, "prepayid=%s&", object.PrepayID)
 	fmt.Fprintf(buf, "timestamp=%d&", object.Timestamp)
 	fmt.Fprintf(buf, "key=%s", c.secret)
+	object.Sign = strings.ToUpper(md5Encrypt(buf.Bytes()))
+	return object
+}
+
+func (c *Client) genWebPayArgs(prepayid string) payment.WXPayObject {
+	object := payment.WXPayObject{
+		APPID:     c.appid,
+		Noncestr:  c.genNonceStr(24),
+		Package:   fmt.Sprintf("prepay_id=%s", prepayid),
+		Timestamp: time.Now().Unix(),
+		SignType:  "MD5",
+	}
+	buf := c.getBuf()
+	defer c.bufpool.Put(buf)
+
+	buf.WriteString(fmt.Sprintf("appId=%s", object.APPID))
+	buf.WriteString(fmt.Sprintf("&nonceStr=%s", object.Noncestr))
+	buf.WriteString(fmt.Sprintf("&package=%s", object.Package))
+	buf.WriteString(fmt.Sprintf("&signType=%s", object.SignType))
+	buf.WriteString(fmt.Sprintf("&timeStamp=%d", object.Timestamp))
+	buf.WriteString(fmt.Sprintf("&key=%s", c.secret))
 	object.Sign = strings.ToUpper(md5Encrypt(buf.Bytes()))
 	return object
 }

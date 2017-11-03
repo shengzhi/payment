@@ -34,7 +34,7 @@ type zhimaCreditVerifyReply struct {
 }
 
 // ZhimaCreditVerify 芝麻欺诈认证
-func (c *Client) ZhimaCreditVerify(r ZhimaCreditVerifyRequest) (err error) {
+func (c *AlipayClient) ZhimaCreditVerify(r ZhimaCreditVerifyRequest) (err error) {
 	r.ProductCode = "w1010100000000002859"
 	r.CertType = "IDENTITY_CARD"
 

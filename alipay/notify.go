@@ -14,7 +14,7 @@ import (
 	"github.com/shengzhi/payment"
 )
 
-func (c *Client) NotifyCallback(r io.Reader, f payment.NotifyHandleFunc) interface{} {
+func (c *AlipayClient) NotifyCallback(r io.Reader, f payment.NotifyHandleFunc) interface{} {
 	buf := c.getBuf()
 	defer c.bufPool.Put(buf)
 	io.Copy(buf, r)
@@ -46,7 +46,7 @@ func (c *Client) NotifyCallback(r io.Reader, f payment.NotifyHandleFunc) interfa
 }
 
 // Verify 异步回到通知验证及解析
-func (c *Client) Verify(params url.Values, v interface{}) error {
+func (c *AlipayClient) Verify(params url.Values, v interface{}) error {
 	signType := SignType(params.Get("sign_type"))
 	sign := params.Get("sign")
 	params.Del("sign_type")

@@ -55,9 +55,7 @@ type commonReply struct {
 
 func (r commonReply) checkErr() error {
 	if r.Code != success_code {
-		if r.SubCode != success_code {
-			return fmt.Errorf("code:%s,error:%s", r.SubCode, r.SubMsg)
-		}
+		return fmt.Errorf("code:%s,error:%s", r.Code, r.Msg)
 	}
 
 	return nil

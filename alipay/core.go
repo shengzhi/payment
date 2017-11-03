@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"sort"
 	"strings"
@@ -19,51 +21,53 @@ import (
 	"github.com/shengzhi/payment"
 )
 
-var _ payment.Provider = &Client{}
+var _ payment.Provider = &AlipayClient{}
 
-// const api_gateway = "https://openapi.alipay.com/gateway.do"
+const api_gateway = "https://openapi.alipay.com/gateway.do"
 
-func init() {
-	http.DefaultClient.Timeout = time.Second * 30
-	http.DefaultClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
+type aliPayConfig struct {
+	appId                string
+	apiDomain            string
+	partnerId            string
+	notifyURL            string
+	rsaPubKey, rsaPriKey []byte
 }
 
-type Config struct {
-	NotifyURL string
-}
-type Client struct {
-	appId      string
-	apiDomain  string
-	partnerId  string
+// AlipayClient alipay client
+type AlipayClient struct {
 	client     *http.Client
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
 	bufPool    *sync.Pool
-	conf       Config
+	cfg        aliPayConfig
+	tracer     *log.Logger
 }
 
 // NewClient 创建支付宝客户端
-func NewClient(apigateway, appID, partnerID string, publicKey, privateKey []byte) (client *Client, err error) {
-	client = &Client{}
-	client.appId = appID
-	client.partnerId = partnerID
-	client.client = http.DefaultClient
-	client.apiDomain = apigateway
+func NewClient(appID, partnerID string, options ...OptionHandlerFunc) *AlipayClient {
+	client := &AlipayClient{
+		cfg:    aliPayConfig{appId: appID, partnerId: partnerID, apiDomain: api_gateway},
+		client: &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}},
+	}
 	client.bufPool = &sync.Pool{
 		New: func() interface{} { return new(bytes.Buffer) },
 	}
-	client.privateKey, err = initRSAPrivateKey(privateKey)
-	client.publicKey, err = initRSAPublicKey(publicKey)
-	return
+	for _, fn := range options {
+		fn(client)
+	}
+	var err error
+	client.publicKey, err = initRSAPublicKey(client.cfg.rsaPubKey)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	client.privateKey, err = initRSAPrivateKey(client.cfg.rsaPriKey)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return client
 }
 
-// SetConfig 配置客户端
-func (c *Client) SetConfig(conf Config) {
-	c.conf = conf
-}
-func (c *Client) getBuf() *bytes.Buffer {
+func (c *AlipayClient) getBuf() *bytes.Buffer {
 	buf := c.bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	return buf
@@ -76,9 +80,9 @@ type actReq struct {
 	params   url.Values
 }
 
-func (c *Client) makeParams(req actReq) url.Values {
+func (c *AlipayClient) makeParams(req actReq) url.Values {
 	var p = url.Values{}
-	p.Add("app_id", c.appId)
+	p.Add("app_id", c.cfg.appId)
 	p.Add("method", req.method)
 	p.Add("format", "JSON")
 	p.Add("charset", "utf-8")
@@ -96,7 +100,7 @@ func (c *Client) makeParams(req actReq) url.Values {
 	return p
 }
 
-func (c *Client) makePlainTxt(params url.Values) []byte {
+func (c *AlipayClient) makePlainTxt(params url.Values) []byte {
 	var keys = make([]string, 0, len(params))
 	for key := range params {
 		keys = append(keys, key)
@@ -112,7 +116,7 @@ func (c *Client) makePlainTxt(params url.Values) []byte {
 	return buf.Bytes()
 }
 
-func (c *Client) makeSign(signType SignType, src []byte) string {
+func (c *AlipayClient) makeSign(signType SignType, src []byte) string {
 	switch signType {
 	case SignTypeRSA2:
 		cipher, err := c.rsa2Encrypt(src, crypto.SHA256)
@@ -131,7 +135,7 @@ func (c *Client) makeSign(signType SignType, src []byte) string {
 	}
 }
 
-func (c *Client) verifySign(signType SignType, src []byte, sign string) error {
+func (c *AlipayClient) verifySign(signType SignType, src []byte, sign string) error {
 	switch signType {
 	case SignTypeRSA2:
 		cipherTxt, err := base64.StdEncoding.DecodeString(sign)
@@ -144,22 +148,48 @@ func (c *Client) verifySign(signType SignType, src []byte, sign string) error {
 	}
 }
 
-func (c *Client) do(params url.Values, reply interface{}) error {
+func (c *AlipayClient) do(params url.Values, reply interface{}) error {
 	buf := c.getBuf()
 	defer c.bufPool.Put(buf)
 	buf.WriteString(params.Encode())
-	req, err := http.NewRequest("POST", c.apiDomain, buf)
+	req, err := http.NewRequest("POST", c.cfg.apiDomain, buf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	req.Header.Set("Accept", "application/json")
-	// reqbody, _ := httputil.DumpRequest(req, true)
-	// fmt.Println(string(reqbody))
-
+	c.dumpRequest(req)
 	rep, err := c.client.Do(req)
+	if rep != nil {
+		defer rep.Body.Close()
+	}
 	if err != nil {
 		return err
 	}
-	// body, _ := httputil.DumpResponse(rep, true)
-	// fmt.Println(string(body))
-	defer rep.Body.Close()
+	c.dumpResponse(rep)
 	return json.NewDecoder(rep.Body).Decode(reply)
+}
+
+func (c *AlipayClient) dumpRequest(req *http.Request) {
+	if c.tracer != nil {
+		data, _ := httputil.DumpRequest(req, true)
+		c.tracer.Println(string(data))
+	}
+}
+
+func (c *AlipayClient) dumpResponse(resp *http.Response) {
+	if c.tracer != nil {
+		data, _ := httputil.DumpResponse(resp, true)
+		c.tracer.Println(string(data))
+	}
+}
+
+func (c *AlipayClient) buildHTML(method string, params url.Values) string {
+	buf := c.getBuf()
+	defer c.bufPool.Put(buf)
+	fmt.Fprint(buf, "<html><body>")
+	fmt.Fprintf(buf, "<form id='alipaysubmit' name='alipaysubmit' action='%s?charset=utf-8' method='%s' style='display:none;'>", c.cfg.apiDomain, method)
+	for k, v := range params {
+		fmt.Fprintf(buf, `<input name='%s' value='%s' />`, k, v[0])
+	}
+	fmt.Fprintf(buf, "<input type='submit' value='%s' style='display:none;'></form></body>", method)
+	fmt.Fprint(buf, "<script>document.forms['alipaysubmit'].submit();</script></html>")
+	return buf.String()
 }

@@ -55,9 +55,10 @@ func (n WXNotifyResult) toNotifyResult() *payment.NotifyResult {
 	return rslt
 }
 
-type NotifyResponse struct {
-	ReturnCode string `xml:"return_code"`
-	ReturnMsg  string `xml:"return_msg"`
+type WXNotifyReply struct {
+	XMLName xml.Name `xml:"xml"`
+	Code    string   `xml:"return_code"`
+	Message string   `xml:"return_msg"`
 }
 
 // NotifyCallback 异步通知处理
@@ -66,13 +67,13 @@ func (c *Client) NotifyCallback(body io.Reader, f payment.NotifyHandleFunc) inte
 	d := xml.NewDecoder(body)
 	err := d.Decode(&result)
 	if err != nil {
-		return NotifyResponse{"FAIL", "序列化失败"}
+		return WXNotifyReply{Code: "FAIL", Message: "序列化失败"}
 	}
 	if !c.validatePayRes(result) {
-		return NotifyResponse{"FAIL", "签名失败"}
+		return WXNotifyReply{Code: "FAIL", Message: "签名失败"}
 	}
 	if err = f(result.toNotifyResult()); err != nil {
-		return NotifyResponse{"FAIL", err.Error()}
+		return WXNotifyReply{Code: "FAIL", Message: err.Error()}
 	}
-	return NotifyResponse{"SUCCESS", "OK"}
+	return WXNotifyReply{Code: "SUCCESS", Message: "OK"}
 }
