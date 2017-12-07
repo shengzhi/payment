@@ -214,6 +214,18 @@ func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, err
 	return or, nil
 }
 
+// Retry 支付重试
+func (c *Client) Retry(source payment.PaySource, prepayid string) *payment.OrderResponse {
+	or := payment.OrderResponse{}
+	or.Wechat.PrepayID = prepayid
+	if source == payment.PaySourceApp {
+		or.Wechat.PayForm = c.genAppPayArgs(prepayid)
+	} else {
+		or.Wechat.PayForm = c.genWebPayArgs(prepayid)
+	}
+	return &or
+}
+
 func (c *Client) genAppPayArgs(prepayid string) payment.WXPayObject {
 	object := payment.WXPayObject{
 		APPID:     c.appid,

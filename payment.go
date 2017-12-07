@@ -19,6 +19,12 @@ func Register(plat PayPlat, provider Provider) {
 	providerMap[plat] = provider
 }
 
+// Retry 对已有订单进行支付重试
+func Retry(source PaySource, prepayid string) *OrderResponse {
+	v := providerMap[PayPlatWechat]
+	return v.Retry(source, prepayid)
+}
+
 // Order 提交支付请求
 func Order(plat PayPlat, r *OrderRequest) (*OrderResponse, error) {
 	if v, ok := providerMap[plat]; ok {
@@ -51,6 +57,8 @@ type Provider interface {
 	NotifyCallback(r io.Reader, f NotifyHandleFunc) interface{}
 	// Refund 退款
 	Refund(RefundRequest) (RefundResponse, error)
+	// Retry 对已有订单进行支付重试
+	Retry(source PaySource, prepayid string) *OrderResponse
 }
 
 // PayPlat 第三方支付平台

@@ -91,3 +91,7 @@ func (c *AlipayClient) Order(order *payment.OrderRequest) (*payment.OrderRespons
 	}
 	return nil, fmt.Errorf("Not Support")
 }
+
+func (c *AlipayClient) Retry(source payment.PaySource, prepayid string) *payment.OrderResponse {
+	return nil
+}
