@@ -3,6 +3,7 @@ package alipay
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"time"
 
@@ -103,4 +104,9 @@ func (c *AlipayClient) tradeRefund(bizData RefundRequest) (TradeRefundReply, err
 		return reply, fmt.Errorf("code:%s, message:%s", reply.SubCode, reply.SubMsg)
 	}
 	return reply, nil
+}
+
+// RefundCallback  支付宝退款为即时退款，不走异步回调通知
+func (c *AlipayClient) RefundCallback(in io.Reader, fn payment.RefundNotifyHandleFunc) interface{} {
+	return nil
 }

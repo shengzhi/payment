@@ -41,8 +41,8 @@ type WXRefundNotifyInfo struct {
 	Source            string   `xml:"refund_request_source"` //退款发起来源
 }
 
-// RefundNotifyHandler 退款异步通知回调处理
-func (c *Client) RefundNotifyHandler(in io.Reader, fn payment.RefundNotifyHandleFunc) WXNotifyReply {
+// RefundCallback 退款异步通知回调处理
+func (c *Client) RefundCallback(in io.Reader, fn payment.RefundNotifyHandleFunc) interface{} {
 	var notifyResult WXRefundNotifyResult
 	err := xml.NewDecoder(in).Decode(&notifyResult)
 	if err != nil {

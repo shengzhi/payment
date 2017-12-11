@@ -49,6 +49,13 @@ func Refund(plat PayPlat, r RefundRequest) (RefundResponse, error) {
 	return RefundResponse{}, fnNoProviderErr(plat)
 }
 
+func RefundCallback(plat PayPlat, r io.Reader, fn RefundNotifyHandleFunc) (interface{}, error) {
+	if v, ok := providerMap[plat]; ok {
+		return v.RefundCallback(r, fn), nil
+	}
+	return nil, fnNoProviderErr(plat)
+}
+
 // Provider 支付提供实现
 type Provider interface {
 	// Order 下单提交支付请求
@@ -57,6 +64,8 @@ type Provider interface {
 	NotifyCallback(r io.Reader, f NotifyHandleFunc) interface{}
 	// Refund 退款
 	Refund(RefundRequest) (RefundResponse, error)
+	// RefundCallback 退款后台异步结果通知回调函数
+	RefundCallback(io.Reader, RefundNotifyHandleFunc) interface{}
 	// Retry 对已有订单进行支付重试
 	Retry(source PaySource, prepayid string) *OrderResponse
 }

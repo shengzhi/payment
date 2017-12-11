@@ -60,24 +60,43 @@ func NewClient(appid, secret, merchid string, options ...OptionFunc) *Client {
 	return c
 }
 func (c *Client) loadCert() error {
+	if c.caroot == "" {
+		return nil
+	}
 	c.tlsCfg = &tls.Config{}
-	pool := x509.NewCertPool()
 	if c.caroot != "" {
+		pool := x509.NewCertPool()
 		rootca, err := ioutil.ReadFile(c.caroot)
 		if err != nil {
 			return fmt.Errorf("WXPay: load CA root cert failed: %v", err)
 		}
-		pool.AppendCertsFromPEM(rootca)
+		if !pool.AppendCertsFromPEM(rootca) {
+			return fmt.Errorf("append certs failed")
+		}
 		c.tlsCfg.RootCAs = pool
+		c.tlsCfg.ClientCAs = pool
 	}
 	if c.clientcrt == "" || c.clientkey == "" {
-		return nil
+		return fmt.Errorf("Client cert and key file is mandatory")
 	}
 	cert, err := tls.LoadX509KeyPair(c.clientcrt, c.clientkey)
 	if err != nil {
 		return fmt.Errorf("WXPay: load cert file pair failed: %v", err)
 	}
 	c.tlsCfg.Certificates = []tls.Certificate{cert}
+	c.tlsCfg.ClientAuth = tls.RequireAndVerifyClientCert
+	c.tlsCfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}
+	//Use only TLS v1.2
+	c.tlsCfg.MinVersion = tls.VersionTLS12
+	//Don't allow session resumption
+	c.tlsCfg.SessionTicketsDisabled = true
 	return nil
 }
 

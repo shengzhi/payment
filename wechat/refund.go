@@ -79,7 +79,9 @@ func (c *Client) Refund(req payment.RefundRequest) (payment.RefundResponse, erro
 	}()
 	var result payment.RefundResponse
 	var refundResp RefundResponse
-	client := &http.Client{Transport: &http.Transport{TLSClientConfig: c.tlsCfg}}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: c.tlsCfg},
+	}
 	res, err := client.Post(wx_pay_refund_url, "application/xml", pr)
 	if err != nil {
 		return result, err
@@ -106,3 +108,57 @@ func (c *Client) Refund(req payment.RefundRequest) (payment.RefundResponse, erro
 	result.PlatRefundID = refundResp.RefundID
 	return result, nil
 }
+
+// func (c *Client) mustLoadCertificates() (tls.Certificate, *x509.CertPool) {
+// 	cafile := "/home/www/elect/cert/rootca.pem"
+// 	certfile := "/home/www/elect/cert/apiclient_cert.pem"
+// 	keyfile := "/home/www/elect/cert/apiclient_key.pem"
+// 	mycert, err := tls.LoadX509KeyPair(certfile, keyfile)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	pem, err := ioutil.ReadFile(cafile)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	certPool := x509.NewCertPool()
+// 	if !certPool.AppendCertsFromPEM(pem) {
+// 		panic("Failed appending certs")
+// 	}
+
+// 	return mycert, certPool
+
+// }
+
+// func (c *Client) mustGetTlsConfiguration() *tls.Config {
+// 	config := &tls.Config{}
+// 	mycert, certPool := c.mustLoadCertificates()
+// 	config.Certificates = []tls.Certificate{mycert}
+// 	config.RootCAs = certPool
+// 	// config.ClientCAs = certPool
+
+// 	config.ClientAuth = tls.RequireAndVerifyClientCert
+
+// 	// //Optional stuff
+
+// 	// //Use only modern ciphers
+// 	// config.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+// 	// 	tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}
+
+// 	// //Use only TLS v1.2
+// 	// config.MinVersion = tls.VersionTLS12
+
+// 	// //Don't allow session resumption
+// 	// config.SessionTicketsDisabled = true
+// 	config.BuildNameToCertificate()
+// 	fmt.Println("Get Certificate OK")
+// 	return config
+// }
