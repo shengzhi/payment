@@ -190,3 +190,50 @@ type RefundResponse struct {
 	CompletedTime                     time.Time
 	IsInstant                         bool // 是否实时退款
 }
+
+// Scene 红包活动场景
+type Scene string
+
+// RedPackageRequest 红包发送请求
+type RedPackageRequest struct {
+	OrderNo       string
+	WXAppID       string
+	WXOpenID      string
+	MerchantName  string // 商户名称
+	TotalAmount   int32
+	TotalNum      int
+	Wishing       string
+	ClientIP      string
+	ActiveName    string // 活动名称
+	Remark        string
+	Scene         Scene // 活动场景
+	Mobile        string
+	DeviceID      string
+	ClientVersion string
+}
+
+type RedPackageResponse struct {
+	OrderNo     string
+	WXAppID     string
+	WXOpenID    string
+	TotalAmount int32
+	PlatOrderNo string
+}
+
+type TransferRequest struct {
+	OrderNo     string
+	WXAppID     string
+	WXOpenID    string
+	Amount      int32
+	ClientIP    string
+	UserName    string
+	Desc        string
+	IsCheckName bool
+}
+
+type TransferResponse struct {
+	OrderNo     string
+	WXAppID     string
+	PlatOrderNo string
+	PayTime     time.Time
+}
