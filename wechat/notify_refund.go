@@ -8,7 +8,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/shengzhi/payment"
@@ -26,7 +25,7 @@ type WXRefundNotifyResult struct {
 }
 
 type WXRefundNotifyInfo struct {
-	XMLName           xml.Name `xml:"xml"`
+	XMLName           xml.Name `xml:"root"`
 	WXTransID         string   `xml:"transaction_id"`
 	OutOrderNo        string   `xml:"out_trade_no"`
 	WXRefundID        string   `xml:"refund_id"`
@@ -67,7 +66,7 @@ func (c *Client) RefundCallback(in io.Reader, fn payment.RefundNotifyHandleFunc)
 		RefundAmount:     info.ActualRefundAmout,
 		TotalAmount:      info.TotalAmount,
 	}
-	refundResult.CompletedTime, _ = time.ParseInLocation("20060102150405", info.CompletedTime, time.Local)
+	refundResult.CompletedTime, _ = time.ParseInLocation("2006-01-02 15:04:05", info.CompletedTime, time.Local)
 	refundResult.IsSuccess = info.Status == "SUCCESS"
 	if err = fn(refundResult); err != nil {
 		return WXNotifyReply{Code: "FAIL", Message: err.Error()}
@@ -76,10 +75,6 @@ func (c *Client) RefundCallback(in io.Reader, fn payment.RefundNotifyHandleFunc)
 }
 
 func (c *Client) decrypteRefundInfo(cipherTxt []byte) (WXRefundNotifyInfo, error) {
-	if len(c.refundKey) <= 0 {
-		c.refundKey = []byte(strings.ToLower(md5Encrypt([]byte(c.secret))))
-	}
-
 	block, err := aes.NewCipher(c.refundKey)
 	if err != nil {
 		return WXRefundNotifyInfo{}, err
@@ -88,13 +83,8 @@ func (c *Client) decrypteRefundInfo(cipherTxt []byte) (WXRefundNotifyInfo, error
 	plainTxt := make([]byte, len(cipherTxt))
 	ecbMode.CryptBlocks(plainTxt, cipherTxt)
 	plainTxt = pkcs5UnPadding(plainTxt)
-	// fmt.Println(string(plainTxt))
-	var buf bytes.Buffer
-	buf.WriteString("<xml>")
-	buf.Write(plainTxt)
-	buf.WriteString("</xml>")
 	var result WXRefundNotifyInfo
-	err = xml.NewDecoder(&buf).Decode(&result)
+	err = xml.NewDecoder(bytes.NewReader(plainTxt)).Decode(&result)
 	return result, err
 }
 
