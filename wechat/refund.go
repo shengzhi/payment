@@ -1,10 +1,10 @@
 package wechat
 
 import (
+	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 
@@ -29,6 +29,7 @@ type RefundRequest struct {
 	RefundFee     int32    `xml:"refund_fee" sign:"refund_fee"`
 	Currency      string   `xml:"refund_fee_type" sign:"refund_fee_type"`
 	Reason        string   `xml:"refund_desc" sign:"refund_desc"`
+	NotifyURL     string   `xml:"notify_url" sign:"notify_url"`
 }
 
 func (r *RefundRequest) setSign(sign string) { r.Sign = sign }
@@ -67,22 +68,20 @@ func (c *Client) Refund(req payment.RefundRequest) (payment.RefundResponse, erro
 		OutTradeNo: req.MerchantOrderNo, OutRefundNo: req.MerchantRefundNo,
 		OrderFee: req.TotalFee, RefundFee: req.RefundFee,
 		Currency: "CNY", Reason: req.Reason,
+		NotifyURL: req.NotifyURL,
 	}
 	c.makePaySign(refundReq)
-	pr, pw := io.Pipe()
-	go func() {
-		defer pw.Close()
-		enc := xml.NewEncoder(pw)
-		if err := enc.Encode(refundReq); err != nil {
-			log.Println(fmt.Errorf("Payment: marshal struct to xml error:%v", err))
-		}
-	}()
+	var buf bytes.Buffer
+	enc := xml.NewEncoder(&buf)
+	if err := enc.Encode(refundReq); err != nil {
+		log.Println(fmt.Errorf("Payment: marshal struct to xml error:%v", err))
+	}
 	var result payment.RefundResponse
 	var refundResp RefundResponse
 	client := &http.Client{
 		Transport: &http.Transport{TLSClientConfig: c.tlsCfg},
 	}
-	res, err := client.Post(wx_pay_refund_url, "application/xml", pr)
+	res, err := client.Post(wx_pay_refund_url, "application/xml", &buf)
 	if err != nil {
 		return result, err
 	}
@@ -108,57 +107,3 @@ func (c *Client) Refund(req payment.RefundRequest) (payment.RefundResponse, erro
 	result.PlatRefundID = refundResp.RefundID
 	return result, nil
 }
-
-// func (c *Client) mustLoadCertificates() (tls.Certificate, *x509.CertPool) {
-// 	cafile := "/home/www/elect/cert/rootca.pem"
-// 	certfile := "/home/www/elect/cert/apiclient_cert.pem"
-// 	keyfile := "/home/www/elect/cert/apiclient_key.pem"
-// 	mycert, err := tls.LoadX509KeyPair(certfile, keyfile)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	pem, err := ioutil.ReadFile(cafile)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	certPool := x509.NewCertPool()
-// 	if !certPool.AppendCertsFromPEM(pem) {
-// 		panic("Failed appending certs")
-// 	}
-
-// 	return mycert, certPool
-
-// }
-
-// func (c *Client) mustGetTlsConfiguration() *tls.Config {
-// 	config := &tls.Config{}
-// 	mycert, certPool := c.mustLoadCertificates()
-// 	config.Certificates = []tls.Certificate{mycert}
-// 	config.RootCAs = certPool
-// 	// config.ClientCAs = certPool
-
-// 	config.ClientAuth = tls.RequireAndVerifyClientCert
-
-// 	// //Optional stuff
-
-// 	// //Use only modern ciphers
-// 	// config.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-// 	// 	tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-// 	// 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-// 	// 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}
-
-// 	// //Use only TLS v1.2
-// 	// config.MinVersion = tls.VersionTLS12
-
-// 	// //Don't allow session resumption
-// 	// config.SessionTicketsDisabled = true
-// 	config.BuildNameToCertificate()
-// 	fmt.Println("Get Certificate OK")
-// 	return config
-// }
