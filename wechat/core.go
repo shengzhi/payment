@@ -41,6 +41,8 @@ func NewClient(appid, secret, merchid string, options ...OptionFunc) *Client {
 	rand.Seed(time.Now().UnixNano())
 	c := &Client{appid: appid, secret: secret,
 		payOption: Config{FeeType: "CNY", Timeout: time.Minute * 5, MerchantID: merchid}}
+
+	c.refundKey = []byte(strings.ToLower(md5Encrypt([]byte(secret))))
 	c.bufpool = &sync.Pool{
 		New: func() interface{} { return new(bytes.Buffer) },
 	}
@@ -60,9 +62,9 @@ func NewClient(appid, secret, merchid string, options ...OptionFunc) *Client {
 	return c
 }
 func (c *Client) loadCert() error {
-	if c.caroot == "" {
-		return nil
-	}
+	// if c.caroot == "" {
+	// 	return nil
+	// }
 	c.tlsCfg = &tls.Config{}
 	if c.caroot != "" {
 		pool := x509.NewCertPool()
@@ -83,6 +85,8 @@ func (c *Client) loadCert() error {
 	if err != nil {
 		return fmt.Errorf("WXPay: load cert file pair failed: %v", err)
 	}
+	// log.Println("==========load cert successfully!===============")
+
 	c.tlsCfg.Certificates = []tls.Certificate{cert}
 	c.tlsCfg.ClientAuth = tls.RequireAndVerifyClientCert
 	c.tlsCfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_128_CBC_SHA,
