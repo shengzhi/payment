@@ -181,6 +181,7 @@ type RefundRequest struct {
 	MerchantRefundNo    string
 	TotalFee, RefundFee int32
 	Reason              string
+	NotifyURL           string
 }
 
 type RefundResponse struct {
