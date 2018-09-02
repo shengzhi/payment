@@ -159,13 +159,13 @@ func (c *Client) Order(order *payment.OrderRequest) (*payment.OrderResponse, err
 		TotalAmount:    order.Amount,
 		ClientIP:       order.ClientIP,
 		Start:          time.Now().Format("20060102150405"),
-		End:            time.Now().Add(c.payOption.Timeout).Format("20060102150405"),
-		Tag:            order.Tag,
-		NotifyURL:      c.payOption.NotifyURL,
-		TradeType:      order.TradeType,
-		ProductID:      order.ProduceID,
-		LimitPay:       c.payOption.LimitPay,
-		OpenID:         order.OpenID,
+		// End:            time.Now().Add(c.payOption.Timeout).Format("20060102150405"),
+		Tag:       order.Tag,
+		NotifyURL: c.payOption.NotifyURL,
+		TradeType: order.TradeType,
+		ProductID: order.ProduceID,
+		LimitPay:  c.payOption.LimitPay,
+		OpenID:    order.OpenID,
 	}
 	if order.Source == payment.PaySourceApp {
 		wxOrderReq.TradeType = "APP"
