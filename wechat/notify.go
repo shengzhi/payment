@@ -10,33 +10,38 @@ import (
 
 // WXNotifyResult 异步通知结果
 type WXNotifyResult struct {
-	XMLName       xml.Name `xml:"xml"`
-	ReturnCode    string   `xml:"return_code" sign:"return_code"`
-	ReturnMsg     string   `xml:"return_msg" sign:"return_msg"`
-	AppID         string   `xml:"appid" sign:"appid"`
-	MerchantID    string   `xml:"mch_id" sign:"mch_id"`
-	DeviceInfo    string   `xml:"device_info" sign:"device_info"`
-	NonceStr      string   `xml:"nonce_str" sign:"nonce_str"`
-	Sign          string   `xml:"sign"`
-	ResultCode    string   `xml:"result_code" sign:"result_code"`
-	ErrCode       string   `xml:"err_code" sign:"err_code"`
-	ErrDesc       string   `xml:"err_code_des" sign:"err_code_des"`
-	TradeType     string   `xml:"trade_type" sign:"trade_type"`
-	OpenID        string   `xml:"openid" sign:"openid"`
-	IsSubscribe   string   `xml:"is_subscribe" sign:"is_subscribe"`
-	BankType      string   `xml:"bank_type" sign:"bank_type"`
-	TotalAmount   int64    `xml:"total_fee" sign:"total_fee"`
-	AccountAmount int64    `xml:"settlement_total_fee" sign:"settlement_total_fee"` //结算金额
-	Currency      string   `xml:"fee_type" sign:"fee_type"`
-	CashAmount    int64    `xml:"cash_fee" sign:"cash_fee"`
-	CashCurrency  string   `xml:"cash_fee_type" sign:"cash_fee_type"`
-	CouponAmount  int64    `xml:"coupon_fee" sign:"coupon_fee"`
-	CouponNum     int      `xml:"coupon_count" sign:"coupon_count"`
-	// CouponType    string   `xml:"coupon_type_$n"`
-	TransactionID   string `xml:"transaction_id" sign:"transaction_id"`
-	MerchantOrderNo string `xml:"out_trade_no" sign:"out_trade_no"`
-	Attach          string `xml:"attach" sign:"attach"`
-	CompletedTime   string `xml:"time_end" sign:"time_end"`
+	XMLName         xml.Name `xml:"xml"`
+	ReturnCode      string   `xml:"return_code" sign:"return_code"`
+	ReturnMsg       string   `xml:"return_msg" sign:"return_msg"`
+	AppID           string   `xml:"appid" sign:"appid"`
+	MerchantID      string   `xml:"mch_id" sign:"mch_id"`
+	DeviceInfo      string   `xml:"device_info" sign:"device_info"`
+	NonceStr        string   `xml:"nonce_str" sign:"nonce_str"`
+	Sign            string   `xml:"sign"`
+	ResultCode      string   `xml:"result_code" sign:"result_code"`
+	ErrCode         string   `xml:"err_code" sign:"err_code"`
+	ErrDesc         string   `xml:"err_code_des" sign:"err_code_des"`
+	TradeType       string   `xml:"trade_type" sign:"trade_type"`
+	OpenID          string   `xml:"openid" sign:"openid"`
+	IsSubscribe     string   `xml:"is_subscribe" sign:"is_subscribe"`
+	BankType        string   `xml:"bank_type" sign:"bank_type"`
+	TotalAmount     int64    `xml:"total_fee" sign:"total_fee"`
+	AccountAmount   int64    `xml:"settlement_total_fee" sign:"settlement_total_fee"` //结算金额
+	Currency        string   `xml:"fee_type" sign:"fee_type"`
+	CashAmount      int64    `xml:"cash_fee" sign:"cash_fee"`
+	CashCurrency    string   `xml:"cash_fee_type" sign:"cash_fee_type"`
+	CouponAmount    int64    `xml:"coupon_fee" sign:"coupon_fee"`
+	CouponNum       int      `xml:"coupon_count" sign:"coupon_count"`
+	CouponType0     string   `xml:"coupon_type_0" sign:"coupon_type_0"`
+	CouponId0       string   `xml:"coupon_id_0" sign:"coupon_id_0"`
+	CounponFee0     int64    `xml:"coupon_fee_0" sign:"coupon_fee_0"`
+	CouponType1     string   `xml:"coupon_type_1" sign:"coupon_type_1"`
+	CouponId1       string   `xml:"coupon_id_1" sign:"coupon_id_1"`
+	CounponFee1     int64    `xml:"coupon_fee_1" sign:"coupon_fee_1"`
+	TransactionID   string   `xml:"transaction_id" sign:"transaction_id"`
+	MerchantOrderNo string   `xml:"out_trade_no" sign:"out_trade_no"`
+	Attach          string   `xml:"attach" sign:"attach"`
+	CompletedTime   string   `xml:"time_end" sign:"time_end"`
 }
 
 func (n WXNotifyResult) getSign() string { return n.Sign }
