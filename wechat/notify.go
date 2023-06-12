@@ -33,11 +33,15 @@ type WXNotifyResult struct {
 	CouponAmount    int64    `xml:"coupon_fee" sign:"coupon_fee"`
 	CouponNum       int      `xml:"coupon_count" sign:"coupon_count"`
 	CouponType0     string   `xml:"coupon_type_0" sign:"coupon_type_0"`
-	CouponId0       string   `xml:"coupon_id_0" sign:"coupon_id_0"`
 	CounponFee0     int64    `xml:"coupon_fee_0" sign:"coupon_fee_0"`
-	CouponType1     string   `xml:"coupon_type_1" sign:"coupon_type_1"`
-	CouponId1       string   `xml:"coupon_id_1" sign:"coupon_id_1"`
 	CounponFee1     int64    `xml:"coupon_fee_1" sign:"coupon_fee_1"`
+	CounponFee2     int64    `xml:"coupon_fee_2" sign:"coupon_fee_2"`
+	CounponFee3     int64    `xml:"coupon_fee_3" sign:"coupon_fee_3"`
+	CouponType1     string   `xml:"coupon_type_1" sign:"coupon_type_1"`
+	CouponId0       string   `xml:"coupon_id_0" sign:"coupon_id_0"`
+	CouponId1       string   `xml:"coupon_id_1" sign:"coupon_id_1"`
+	CouponId2       string   `xml:"coupon_id_2" sign:"coupon_id_2"`
+	CouponId3       string   `xml:"coupon_id_3" sign:"coupon_id_3"`
 	TransactionID   string   `xml:"transaction_id" sign:"transaction_id"`
 	MerchantOrderNo string   `xml:"out_trade_no" sign:"out_trade_no"`
 	Attach          string   `xml:"attach" sign:"attach"`
